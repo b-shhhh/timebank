@@ -1,0 +1,61 @@
+const winston = require('winston');
+const prisma = require('../config/db');
+
+const SENSITIVE_KEYS = new Set([
+  'password', 'newPassword', 'oldPassword', 'confirmPassword',
+  'token', 'accessToken', 'refreshToken', 'mfaSecret', 'mfaToken',
+  'backupCode', 'authorization', 'cookie', 'otp',
+]);
+
+// Recursively strips known-sensitive keys before anything is written to
+// the application log or the ActivityLog table. Defence in depth: even if
+// a caller accidentally passes a secret into metadata, it never lands on
+// disk.
+function redact(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(redact);
+  const clean = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (SENSITIVE_KEYS.has(key)) {
+      clean[key] = '[REDACTED]';
+    } else if (typeof value === 'object') {
+      clean[key] = redact(value);
+    } else {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
+const appLogger = winston.createLogger({
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/app.log' }),
+  ],
+});
+
+// Writes a structured, queryable record for security auditing / incident
+// response (separate from the general application log above). Never
+// stores full request bodies, only whitelisted metadata.
+async function recordActivity({ userId = null, action, targetType = null, targetId = null, req = null, metadata = {} }) {
+  try {
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        action,
+        targetType,
+        targetId,
+        ipAddress: req ? req.ip : null,
+        userAgent: req ? req.get('user-agent') : null,
+        metadata: JSON.stringify(redact(metadata)),
+      },
+    });
+  } catch (err) {
+    // Logging must never crash the request path.
+    appLogger.error('Failed to write activity log', { error: err.message, action });
+  }
+}
+
+module.exports = { appLogger, recordActivity, redact };

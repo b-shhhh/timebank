@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-body text-ink-900;
+  }
+  h1, h2, h3 {
+    font-family: "Fraunces", serif;
+  }
+  ::selection {
+    @apply bg-brass/30;
+  }
+  /* Visible keyboard focus everywhere - accessibility floor */
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid #B8862B;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-paper text-ink-900 rounded-lg shadow-[0_8px_30px_rgba(0,0,0,0.35)];
+  }
+  .btn-primary {
+    @apply bg-brass hover:bg-brass-light text-ink-950 font-semibold px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-transparent border border-ink-700 hover:border-brass text-paper px-4 py-2 rounded-md transition-colors;
+  }
+  .input-field {
+    @apply w-full bg-white border border-ink-700/20 rounded-md px-3 py-2 text-ink-900 placeholder:text-ink-700/40 focus:border-brass outline-none transition-colors;
+  }
+  .label-eyebrow {
+    @apply text-xs uppercase tracking-[0.18em] text-brass font-semibold;
+  }
+}
