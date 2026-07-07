@@ -17,8 +17,8 @@ function refreshCookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/api/auth',
+    sameSite: 'lax',
+    path: '/',
     maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
   };
 }
@@ -213,7 +213,7 @@ async function logout(req, res, next) {
         data: { revokedAt: new Date() },
       });
     }
-    res.clearCookie('refreshToken', { path: '/api/auth' });
+    res.clearCookie('refreshToken', { path: '/' });
     if (req.user) await recordActivity({ userId: req.user.id, action: 'LOGOUT', req });
     res.status(200).json({ message: 'Logged out.' });
   } catch (err) {
