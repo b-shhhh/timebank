@@ -1,10 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-// Signature element: the top bar renders the user's time-credit balance
-// as a stamped ledger "ticket" (mono type, brass rule above and below)
-// rather than a generic badge - reinforcing the app's core idea that
-// hours, not money, are the unit of account here.
+
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
