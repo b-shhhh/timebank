@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http:
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
 
 let accessToken = null;
 let onUnauthorized = null;
