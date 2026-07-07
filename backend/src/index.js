@@ -17,12 +17,8 @@ const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 
-// Trust the first proxy hop (needed for correct req.ip behind a reverse
-// proxy / load balancer in production) - without this, rate limiting and
-// IP logging would key off the proxy's IP instead of the client's.
 app.set('trust proxy', 1);
 
-// ---- Security headers ----
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -38,7 +34,6 @@ app.use(helmet({
 }));
 app.use(hpp()); // strips duplicate query-string params (HTTP parameter pollution)
 
-// ---- CORS: explicit allow-list, credentials required for refresh cookie ----
 app.use(cors({
   origin: process.env.CORS_ORIGIN,
   credentials: true,
@@ -64,7 +59,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
   console.log(`TimeBank API listening on port ${PORT}`);
 });
 
