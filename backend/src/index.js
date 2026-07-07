@@ -16,6 +16,10 @@ const disputeRoutes = require('./routes/dispute.routes');
 const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.set('trust proxy', 1);
 
@@ -35,7 +39,15 @@ app.use(helmet({
 app.use(hpp());
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+      /^https?:\/\/localhost(?::\d+)?$/.test(origin) ||
+      /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin);
+
+    callback(null, isAllowed);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
 }));
