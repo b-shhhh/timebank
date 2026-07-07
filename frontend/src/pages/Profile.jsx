@@ -11,7 +11,7 @@ export default function Profile() {
   const [isProfilePrivate, setIsProfilePrivate] = useState(user?.isProfilePrivate || false);
   const [saveMsg, setSaveMsg] = useState('');
 
-  const [mfaStep, setMfaStep] = useState('idle'); // idle | setup | confirm
+  const [mfaStep, setMfaStep] = useState('idle');
   const [qr, setQr] = useState(null);
   const [base32Secret, setBase32Secret] = useState('');
   const [mfaCode, setMfaCode] = useState('');

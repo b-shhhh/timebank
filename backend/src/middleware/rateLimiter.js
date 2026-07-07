@@ -2,7 +2,7 @@ const rateLimit = require('express-rate-limit');
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20, // 20 requests / 15 min / IP across all auth endpoints
+  limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
@@ -10,7 +10,7 @@ const authRateLimiter = rateLimit({
 
 const loginRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
-  limit: 8, // 8 login attempts / 10 min / IP
+  limit: 8,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts from this network. Please try again later.' },

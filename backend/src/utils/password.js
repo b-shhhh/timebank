@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 
-const SALT_ROUNDS = 12; // cost factor: tuned for ~200-300ms per hash on
-const HISTORY_DEPTH = 5; // block reuse of the last 5 passwords
+const SALT_ROUNDS = 12;
+const HISTORY_DEPTH = 5;
 const MAX_PASSWORD_AGE_DAYS = 90;
 
 const COMMON_PASSWORDS = new Set([
@@ -17,7 +17,7 @@ function scorePasswordStrength(password) {
   if (/[A-Z]/.test(password)) score += 1;
   if (/[0-9]/.test(password)) score += 1;
   if (/[^A-Za-z0-9]/.test(password)) score += 1;
-  if (/(.)\1{2,}/.test(password)) score -= 1; // repeated chars
+  if (/(.)\1{2,}/.test(password)) score -= 1;
   const labels = ['very weak', 'weak', 'fair', 'good', 'strong', 'very strong'];
   const idx = Math.max(0, Math.min(labels.length - 1, score));
   return { score, label: labels[idx] };

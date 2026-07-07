@@ -19,7 +19,7 @@ function verifyToken(base32Secret, token) {
     secret: base32Secret,
     encoding: 'base32',
     token,
-    window: 1, // allow ±30s clock drift
+    window: 1,
   });
 }
 
@@ -35,7 +35,7 @@ async function consumeBackupCode(hashedCodesJson, submittedCode) {
   const hashedCodes = JSON.parse(hashedCodesJson || '[]');
   for (let i = 0; i < hashedCodes.length; i++) {
     if (await bcrypt.compare(submittedCode, hashedCodes[i])) {
-      hashedCodes.splice(i, 1); // one-time use - remove once consumed
+      hashedCodes.splice(i, 1);
       return { valid: true, remaining: JSON.stringify(hashedCodes) };
     }
   }

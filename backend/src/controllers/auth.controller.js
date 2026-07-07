@@ -15,10 +15,10 @@ const REFRESH_TTL_DAYS = parseInt(process.env.REFRESH_TOKEN_TTL_DAYS || '7', 10)
 
 function refreshCookieOptions() {
   return {
-    httpOnly: true,               // not readable by JS -> mitigates XSS token theft
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in prod
-    sameSite: 'strict',           // mitigates CSRF
-    path: '/api/auth',            // only sent to auth endpoints
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/auth',
     maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
   };
 }

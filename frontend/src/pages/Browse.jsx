@@ -17,7 +17,7 @@ export default function Browse() {
     setResults(data);
   };
 
-  useEffect(() => { search(); }, []); // eslint-disable-line
+  useEffect(() => { search(); }, []);
 
   const requestBooking = async (e) => {
     e.preventDefault();

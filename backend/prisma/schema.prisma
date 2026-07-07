@@ -41,18 +41,18 @@ model User {
   role                Role      @default(MEMBER)
 
   mfaEnabled          Boolean   @default(false)
-  mfaSecret           String?   // encrypted at rest, see utils/crypto.js
-  mfaBackupCodes      String?   // JSON array of hashed backup codes
+  mfaSecret           String?
+  mfaBackupCodes      String?
 
   failedLoginCount    Int       @default(0)
   lockedUntil         DateTime?
 
   displayName         String
   bio                 String?
-  skillsOffered       String?   // JSON string array
-  skillsNeeded        String?   // JSON string array
+  skillsOffered       String?
+  skillsNeeded        String?
   isProfilePrivate    Boolean   @default(false)
-  timeCredits         Int       @default(2) // small signup bonus
+  timeCredits         Int       @default(2)
 
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -78,7 +78,7 @@ model Session {
   id            String   @id @default(uuid())
   userId        String
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  refreshHash   String   // hash of the refresh token, never store raw
+  refreshHash   String
   userAgent     String?
   ipAddress     String?
   createdAt     DateTime @default(now())
@@ -109,7 +109,7 @@ model LedgerEntry {
   user      User         @relation(fields: [userId], references: [id])
   bookingId String?
   booking   Booking?     @relation(fields: [bookingId], references: [id])
-  amount    Int          // positive = credit, negative = debit
+  amount    Int
   reason    LedgerReason
   createdAt DateTime     @default(now())
 }
@@ -132,11 +132,11 @@ model ActivityLog {
   id         String   @id @default(uuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id])
-  action     String   // e.g. "LOGIN_SUCCESS", "LOGIN_FAILED", "CREDIT_TRANSFER"
-  targetType String?  // e.g. "Booking", "User"
+  action     String
+  targetType String?
   targetId   String?
   ipAddress  String?
   userAgent  String?
-  metadata   String?  // JSON string, redacted of secrets
+  metadata   String?
   createdAt  DateTime @default(now())
 }
