@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
     api.post('/auth/register', { email, password, displayName });
 
   const logout = async () => {
-    try { await api.post('/auth/logout'); } catch { /* best-effort */ }
+    try { await api.post('/auth/logout'); } catch {  }
     logoutLocal();
   };
 

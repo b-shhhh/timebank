@@ -12,7 +12,7 @@
   ::selection {
     @apply bg-brass/30;
   }
-  /* Visible keyboard focus everywhere - accessibility floor */
+  
   a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
     outline: 2px solid #B8862B;
     outline-offset: 2px;
