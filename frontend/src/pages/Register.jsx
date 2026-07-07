@@ -22,7 +22,7 @@ export default function Register() {
       setMessage(res.message);
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.data?.details ? err.data.details.map((d) => d.msg).join(' ') : err.message);
+       setError(err.data?.details ? err.data.details.map((d) => typeof d === 'string' ? d : d.msg).join(' ') : err.message);
     } finally {
       setSubmitting(false);
     }

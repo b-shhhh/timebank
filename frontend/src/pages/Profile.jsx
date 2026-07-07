@@ -66,7 +66,7 @@ export default function Profile() {
       const res = await api.post('/auth/change-password', { currentPassword: pw.current, newPassword: pw.next });
       setPwMsg(res.message);
     } catch (err) {
-      setPwMsg(err.data?.details ? err.data.details.map((d) => d.msg).join(' ') : err.message);
+       setPwMsg(err.data?.details ? err.data.details.map((d) => typeof d === 'string' ? d : d.msg).join(' ') : err.message);
     }
   };
 
