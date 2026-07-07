@@ -43,15 +43,15 @@ export default function Browse() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {results.map((p) => (
-          <div key={p.id} className="card p-5">
+          <div key={p.id} className="card p-5 flex flex-col">
             <p className="font-display text-lg text-ink-900">{p.displayName}</p>
-            {p.bio && <p className="text-sm text-ink-700/70 mt-1">{p.bio}</p>}
-            <div className="flex flex-wrap gap-1.5 mt-2">
+            {p.bio && <p className="text-sm text-ink-700/70 mt-1 flex-grow">{p.bio}</p>}
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {p.skillsOffered.map((s) => (
                 <span key={s} className="text-xs bg-brass/15 text-brass-dark px-2 py-0.5 rounded-full">{s}</span>
               ))}
             </div>
-            <button onClick={() => { setBookingFor(p); setSkill(p.skillsOffered[0] || ''); }} className="btn-primary text-xs mt-4">
+            <button onClick={() => { setBookingFor(p); setSkill(p.skillsOffered[0] || ''); }} className="btn-primary text-xs mt-4 self-start">
               Request session
             </button>
           </div>

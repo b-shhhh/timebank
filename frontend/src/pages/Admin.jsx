@@ -37,6 +37,7 @@ export default function Admin() {
   return (
     <Layout>
       <h1 className="font-display text-3xl text-paper mb-2">Admin</h1>
+      <p className="text-paper/50 text-sm mb-6">Manage users and view activity logs.</p>
       <div className="flex gap-4 mb-6 text-sm">
         <button onClick={() => setTab('users')} className={`pb-1 ${tab === 'users' ? 'text-brass border-b-2 border-brass' : 'text-paper/50'}`}>Users</button>
         <button onClick={() => setTab('logs')} className={`pb-1 ${tab === 'logs' ? 'text-brass border-b-2 border-brass' : 'text-paper/50'}`}>Activity logs</button>

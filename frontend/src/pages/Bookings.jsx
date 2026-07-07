@@ -48,10 +48,11 @@ export default function Bookings() {
 
   return (
     <Layout>
-      <h1 className="font-display text-3xl text-paper mb-6">Your bookings</h1>
+      <h1 className="font-display text-3xl text-paper mb-2">Your bookings</h1>
+      <p className="text-paper/50 text-sm mb-6">Manage your skill exchange sessions.</p>
       {error && <p className="text-rust text-sm mb-4">{error}</p>}
       <div className="card divide-y divide-ink-700/10">
-        {bookings.length === 0 && <p className="p-5 text-ink-700/60 text-sm">No bookings yet.</p>}
+        {bookings.length === 0 && <p className="p-6 text-ink-700/60 text-sm">No bookings yet. Browse skills to get started.</p>}
         {bookings.map((b) => {
           const isProvider = b.providerId === user.id;
           return (

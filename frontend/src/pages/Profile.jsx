@@ -98,7 +98,7 @@ export default function Profile() {
           </div>
           <label className="flex items-center gap-2 text-sm text-ink-700">
             <input type="checkbox" checked={isProfilePrivate} onChange={(e) => setIsProfilePrivate(e.target.checked)} />
-            Keep my email &amp; balance private from other members
+            Keep my email & balance private from other members
           </label>
           {saveMsg && <p className="text-sage text-sm">{saveMsg}</p>}
           <button className="btn-primary">Save changes</button>
@@ -124,7 +124,7 @@ export default function Profile() {
                 <input className="input-field font-mono text-center tracking-widest" placeholder="6-digit code" value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} />
                 <input className="input-field" type="password" placeholder="Confirm your password" value={mfaPassword} onChange={(e) => setMfaPassword(e.target.value)} />
                 {mfaError && <p className="text-rust text-sm">{mfaError}</p>}
-                <button className="btn-primary w-full text-sm">Confirm &amp; enable</button>
+                <button className="btn-primary w-full text-sm">Confirm & enable</button>
               </form>
             ) : (
               <div>

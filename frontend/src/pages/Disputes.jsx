@@ -23,13 +23,13 @@ export default function Disputes() {
   return (
     <Layout>
       <h1 className="font-display text-3xl text-paper mb-2">Dispute queue</h1>
-      <p className="text-paper/50 text-sm mb-6">Visible only to mediators &amp; admins.</p>
+      <p className="text-paper/50 text-sm mb-6">Visible only to mediators & admins.</p>
       {error && <p className="text-rust text-sm mb-4">{error}</p>}
       <div className="space-y-4">
         {disputes.length === 0 && <p className="text-paper/50 text-sm">No open disputes.</p>}
         {disputes.map((d) => (
           <div key={d.id} className="card p-5">
-            <p className="font-medium text-ink-900">Booking: {d.booking.skill} &middot; {d.booking.hours}h</p>
+            <p className="font-medium text-ink-900">{d.booking.skill} &middot; {d.booking.hours}h</p>
             <p className="text-sm text-ink-700 mt-1">{d.reason}</p>
             <textarea
               className="input-field mt-3 text-sm"

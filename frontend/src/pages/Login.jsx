@@ -50,12 +50,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink-900 px-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="font-display text-3xl text-paper">Time<span className="text-brass">Bank</span></h1>
-          <p className="text-paper/50 text-sm mt-1">An hour given, an hour earned.</p>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-10">
+          <h1 className="font-display text-4xl text-paper mb-2">Time<span className="text-brass">Bank</span></h1>
+          <p className="text-paper/50 text-sm">Trade an hour of skill for an hour of skill.</p>
         </div>
-        <div className="card p-7">
+        <div className="card p-8">
           {!pendingToken ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <h2 className="label-eyebrow">Sign in</h2>
