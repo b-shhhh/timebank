@@ -38,6 +38,8 @@ async function request(path, { method = 'GET', body, retry = true } = {}) {
     err.details = data.details;
     err.status = res.status;
     err.data = data;
+    // Log the full error data for debugging
+    console.error('API Error:', { status: res.status, data });
     throw err;
   }
   return data;
