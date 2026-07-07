@@ -14,8 +14,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     setUnauthorizedHandler(logoutLocal);
-    // On first load, try a silent refresh using the httpOnly cookie so a
-    // page reload doesn't force a fresh login if the session is still valid.
     (async () => {
       const ok = await tryRefresh();
       if (ok) {

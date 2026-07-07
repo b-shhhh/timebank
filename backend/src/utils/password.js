@@ -1,18 +1,9 @@
 const bcrypt = require('bcryptjs');
-// Prisma is required lazily inside the functions that need DB access
-// (isPasswordReused / recordPasswordHistory) rather than at module load
-// time, so the pure policy/hashing helpers stay unit-testable without a
-// live database connection or generated Prisma client.
 
 const SALT_ROUNDS = 12; // cost factor: tuned for ~200-300ms per hash on
-                         // commodity hardware, deliberately slow for brute force
 const HISTORY_DEPTH = 5; // block reuse of the last 5 passwords
 const MAX_PASSWORD_AGE_DAYS = 90;
 
-// Common/breached password check - in production this should call the
-// k-Anonymity range API (haveibeenpwned) rather than a static list.
-// A tiny illustrative denylist is included so the control is demonstrable
-// end-to-end without a network dependency in the marking environment.
 const COMMON_PASSWORDS = new Set([
   'password', 'password1', 'password123', 'qwerty123', 'letmein123',
   '123456789', 'admin1234', 'welcome123', 'iloveyou1', 'sunshine1',
@@ -62,8 +53,6 @@ async function verifyPassword(password, hash) {
   return bcrypt.compare(password, hash);
 }
 
-// Checks the new password against the user's stored history (reuse
-// prevention) - compares against both the current hash and prior hashes.
 async function isPasswordReused(userId, currentHash, newPassword) {
   const prisma = require('../config/db');
   const matchesCurrent = await bcrypt.compare(newPassword, currentHash);
@@ -83,7 +72,6 @@ async function isPasswordReused(userId, currentHash, newPassword) {
 async function recordPasswordHistory(userId, oldHash) {
   const prisma = require('../config/db');
   await prisma.passwordHistory.create({ data: { userId, hash: oldHash } });
-  // Trim history beyond HISTORY_DEPTH to bound table growth.
   const all = await prisma.passwordHistory.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },

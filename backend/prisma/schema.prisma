@@ -1,10 +1,3 @@
-// Prisma schema for the Time-Bank Skill-Exchange platform.
-// Dev uses SQLite for zero-config local running; swap provider to
-// "postgresql" + DATABASE_URL for production (see README - production
-// hardening section). Using a relational DB (not a document store) is a
-// deliberate security-by-design choice: it gives us real ACID transactions
-// for credit transfers, and foreign-key constraints prevent orphaned /
-// spoofed references (a common source of IDOR bugs).
 
 datasource db {
   provider = "sqlite"
@@ -44,20 +37,16 @@ model User {
   emailVerified       Boolean   @default(false)
   passwordHash        String
   passwordChangedAt   DateTime  @default(now())
-  // Rolling history of previous password hashes (reuse prevention).
   passwordHistory     PasswordHistory[]
   role                Role      @default(MEMBER)
 
-  // MFA (TOTP)
   mfaEnabled          Boolean   @default(false)
   mfaSecret           String?   // encrypted at rest, see utils/crypto.js
   mfaBackupCodes      String?   // JSON array of hashed backup codes
 
-  // Account / brute-force protection
   failedLoginCount    Int       @default(0)
   lockedUntil         DateTime?
 
-  // Profile
   displayName         String
   bio                 String?
   skillsOffered       String?   // JSON string array
@@ -85,9 +74,6 @@ model PasswordHistory {
   createdAt DateTime @default(now())
 }
 
-// Server-side session record backing refresh tokens, enabling true
-// server-side invalidation (logout / "log out all devices" / admin revoke)
-// rather than relying purely on stateless JWT expiry.
 model Session {
   id            String   @id @default(uuid())
   userId        String
@@ -117,9 +103,6 @@ model Booking {
   ledgerEntries LedgerEntry[]
 }
 
-// Immutable, append-only ledger of every credit movement. Never updated or
-// deleted - corrections happen via new offsetting entries. This is what
-// lets us reconstruct "who had how many credits when" for audit purposes.
 model LedgerEntry {
   id        String       @id @default(uuid())
   userId    String
@@ -145,9 +128,6 @@ model Dispute {
   createdAt    DateTime  @default(now())
 }
 
-// Structured activity log for auditing / incident response. Deliberately
-// avoids storing free-text bodies of user content or secrets - only
-// metadata about the event (see utils/logger.js redaction rules).
 model ActivityLog {
   id         String   @id @default(uuid())
   userId     String?

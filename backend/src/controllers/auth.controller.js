@@ -39,7 +39,6 @@ async function issueSession(user, req, res) {
   return accessToken;
 }
 
-// -------------------- Register --------------------
 async function register(req, res, next) {
   try {
     const { email, password, displayName } = req.body;
@@ -51,8 +50,6 @@ async function register(req, res, next) {
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existing) {
-      // Deliberately vague message: do not reveal whether the email is
-      // registered (prevents user enumeration).
       return res.status(200).json({
         message: 'If this email is not already registered, a verification link has been sent.',
       });
@@ -69,9 +66,6 @@ async function register(req, res, next) {
 
     await recordActivity({ userId: user.id, action: 'USER_REGISTERED', req });
 
-    // In production: send a real verification email with a signed,
-    // single-use, time-limited token. Omitted here to keep the reference
-    // app runnable without an SMTP dependency in the marking environment.
     res.status(201).json({
       message: 'Registration successful. Please verify your email to continue.',
     });
@@ -80,16 +74,11 @@ async function register(req, res, next) {
   }
 }
 
-// -------------------- Login (step 1: password) --------------------
 async function login(req, res, next) {
   try {
     const { email, password, captchaToken } = req.body;
     const user = await prisma.user.findUnique({ where: { email: (email || '').toLowerCase() } });
 
-    // Constant-shape response whether or not the user exists, to avoid
-    // leaking account existence via timing/response differences. We still
-    // run a dummy bcrypt compare against a static hash for non-existent
-    // users so response time doesn't leak existence either.
     const dummyHash = '$2b$12$abcdefghijklmnopqrstuv1234567890abcdefghijklmnopqrstuv';
     const passwordOk = user
       ? await verifyPassword(password, user.passwordHash)
@@ -100,9 +89,6 @@ async function login(req, res, next) {
       return res.status(423).json({ error: 'Account temporarily locked due to repeated failed attempts.' });
     }
 
-    // Require CAPTCHA once a user has accumulated failed attempts, rather
-    // than on every login (usability vs. security trade-off, discussed in
-    // report Section 3).
     if (user && user.failedLoginCount >= 3) {
       const captchaOk = await verifyCaptcha(captchaToken);
       if (!captchaOk) {
@@ -128,16 +114,12 @@ async function login(req, res, next) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    // Successful password check - reset failure counters.
     await prisma.user.update({
       where: { id: user.id },
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
     if (user.mfaEnabled) {
-      // Short-lived, purpose-limited "pending MFA" token instead of a full
-      // session - the caller cannot use this to access any protected
-      // resource until the second factor is verified.
       const pendingToken = signAccessToken({ id: user.id, role: 'PENDING_MFA', mfaEnabled: true });
       await recordActivity({ userId: user.id, action: 'LOGIN_PASSWORD_OK_MFA_PENDING', req });
       return res.status(200).json({ mfaRequired: true, pendingToken });
@@ -154,7 +136,6 @@ async function login(req, res, next) {
   }
 }
 
-// -------------------- Login (step 2: MFA) --------------------
 async function verifyMfaLogin(req, res, next) {
   try {
     const { pendingToken, code, isBackupCode } = req.body;
@@ -202,7 +183,6 @@ async function verifyMfaLogin(req, res, next) {
   }
 }
 
-// -------------------- Refresh --------------------
 async function refresh(req, res, next) {
   try {
     const token = req.cookies?.refreshToken;
@@ -216,9 +196,6 @@ async function refresh(req, res, next) {
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user) return res.status(401).json({ error: 'Invalid session.' });
 
-    // Rotate the refresh token on every use (single-use tokens): revoke
-    // the old session record and issue a fresh one. This limits the blast
-    // radius if a refresh token is ever stolen (replay is detectable).
     await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
     const accessToken = await issueSession(user, req, res);
     res.status(200).json({ accessToken });
@@ -227,7 +204,6 @@ async function refresh(req, res, next) {
   }
 }
 
-// -------------------- Logout --------------------
 async function logout(req, res, next) {
   try {
     const token = req.cookies?.refreshToken;
@@ -245,7 +221,6 @@ async function logout(req, res, next) {
   }
 }
 
-// -------------------- Change password --------------------
 async function changePassword(req, res, next) {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -267,9 +242,6 @@ async function changePassword(req, res, next) {
       where: { id: user.id },
       data: { passwordHash: newHash, passwordChangedAt: new Date() },
     });
-    // Invalidate all existing sessions on password change - a stolen
-    // session shouldn't survive the legitimate user rotating their
-    // password.
     await prisma.session.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
     await recordActivity({ userId: user.id, action: 'PASSWORD_CHANGED', req });
     res.status(200).json({ message: 'Password updated. Please log in again.' });

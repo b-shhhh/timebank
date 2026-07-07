@@ -7,10 +7,6 @@ const SENSITIVE_KEYS = new Set([
   'backupCode', 'authorization', 'cookie', 'otp',
 ]);
 
-// Recursively strips known-sensitive keys before anything is written to
-// the application log or the ActivityLog table. Defence in depth: even if
-// a caller accidentally passes a secret into metadata, it never lands on
-// disk.
 function redact(obj) {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(redact);
@@ -36,9 +32,6 @@ const appLogger = winston.createLogger({
   ],
 });
 
-// Writes a structured, queryable record for security auditing / incident
-// response (separate from the general application log above). Never
-// stores full request bodies, only whitelisted metadata.
 async function recordActivity({ userId = null, action, targetType = null, targetId = null, req = null, metadata = {} }) {
   try {
     await prisma.activityLog.create({
@@ -53,7 +46,6 @@ async function recordActivity({ userId = null, action, targetType = null, target
       },
     });
   } catch (err) {
-    // Logging must never crash the request path.
     appLogger.error('Failed to write activity log', { error: err.message, action });
   }
 }

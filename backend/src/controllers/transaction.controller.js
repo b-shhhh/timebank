@@ -1,7 +1,6 @@
 const prisma = require('../config/db');
 const { recordActivity } = require('../utils/logger');
 
-// POST /api/bookings - request a session with a provider.
 async function createBooking(req, res, next) {
   try {
     const { providerId, skill, hours, scheduledFor } = req.body;
@@ -28,12 +27,10 @@ async function createBooking(req, res, next) {
   }
 }
 
-// Loader used by requireOwnershipOrRole for booking-scoped routes.
 async function loadBooking(req) {
   return prisma.booking.findUnique({ where: { id: req.params.id } });
 }
 
-// PATCH /api/bookings/:id/accept - only the provider can accept.
 async function acceptBooking(req, res, next) {
   try {
     const booking = req.resource;
@@ -51,12 +48,6 @@ async function acceptBooking(req, res, next) {
   }
 }
 
-// PATCH /api/bookings/:id/complete - the REQUESTER confirms the session
-// happened, which is the trigger that moves credits. This is the
-// integrity-critical path: credit debit, credit credit, ledger entries,
-// and status change all happen inside a single Prisma interactive
-// transaction so a mid-way failure (e.g. DB connection drop) rolls back
-// everything rather than leaving credits half-transferred.
 async function completeBooking(req, res, next) {
   try {
     const booking = req.resource;
@@ -78,9 +69,6 @@ async function completeBooking(req, res, next) {
         data: { status: 'COMPLETED' },
       });
 
-      // Re-check balance inside the transaction to close the TOCTOU
-      // window between the check above and this write (defends against a
-      // race where two completions fire concurrently).
       const freshRequester = await tx.user.findUnique({ where: { id: booking.requesterId } });
       if (freshRequester.timeCredits < booking.hours) {
         throw Object.assign(new Error('Insufficient time credits to complete this booking.'), { status: 402 });
@@ -132,8 +120,6 @@ async function cancelBooking(req, res, next) {
   }
 }
 
-// GET /api/bookings/mine - only ever returns bookings the caller is party
-// to; there is no "get all bookings" for members (least privilege).
 async function myBookings(req, res, next) {
   try {
     const bookings = await prisma.booking.findMany({

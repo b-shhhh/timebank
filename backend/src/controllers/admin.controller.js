@@ -1,9 +1,6 @@
 const prisma = require('../config/db');
 const { recordActivity } = require('../utils/logger');
 
-// All routes in this controller are mounted behind requireRole('ADMIN')
-// in routes/admin.routes.js - defence in depth: the controller itself
-// still doesn't trust req.body.role blindly (see setUserRole).
 
 async function listUsers(req, res, next) {
   try {
@@ -53,7 +50,6 @@ async function unlockUser(req, res, next) {
   }
 }
 
-// GET /api/admin/activity-logs - audit trail for incident response.
 async function getActivityLogs(req, res, next) {
   try {
     const { userId, action, take = 100 } = req.query;

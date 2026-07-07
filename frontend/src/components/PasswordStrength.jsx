@@ -1,6 +1,3 @@
-// Client-side strength feedback only - the authoritative policy check
-// always happens server-side (see backend/src/utils/password.js). This
-// is purely UX guidance so users aren't surprised by a rejection.
 export default function PasswordStrength({ password }) {
   if (!password) return null;
   let score = 0;

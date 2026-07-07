@@ -2,11 +2,6 @@ const prisma = require('../config/db');
 const { recordActivity } = require('../utils/logger');
 const xss = require('xss');
 
-// Fields a user is allowed to edit on their OWN profile via this endpoint.
-// This explicit allow-list is the core defence against mass assignment:
-// even if a client sends { role: "ADMIN", timeCredits: 999999 } in the
-// body, only the keys below are ever read from req.body - everything
-// else is silently ignored, never passed to Prisma's `data`.
 const SELF_EDITABLE_FIELDS = ['displayName', 'bio', 'skillsOffered', 'skillsNeeded', 'isProfilePrivate'];
 
 function sanitizeText(value) {
@@ -22,15 +17,12 @@ function publicProfileShape(user, viewerIsSelfOrPrivileged) {
     skillsOffered: user.skillsOffered ? JSON.parse(user.skillsOffered) : [],
     skillsNeeded: user.skillsNeeded ? JSON.parse(user.skillsNeeded) : [],
   };
-  // Private profiles hide contact-adjacent detail from other members;
-  // owners, mediators, and admins always see the full shape.
   if (user.isProfilePrivate && !viewerIsSelfOrPrivileged) {
     return base;
   }
   return { ...base, email: user.email, timeCredits: user.timeCredits };
 }
 
-// GET /api/profiles/me
 async function getMyProfile(req, res, next) {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
@@ -40,7 +32,6 @@ async function getMyProfile(req, res, next) {
   }
 }
 
-// PATCH /api/profiles/me - self-service edit, allow-listed fields only.
 async function updateMyProfile(req, res, next) {
   try {
     const data = {};
@@ -64,12 +55,6 @@ async function updateMyProfile(req, res, next) {
   }
 }
 
-// GET /api/profiles/:id - viewing ANOTHER user's profile.
-// Object-level authorization: we look the record up ourselves by the ID
-// in the URL rather than trusting any ID the client claims to be "theirs"
-// - this route is read-only and privacy-filtered rather than blocked
-// outright, since browsing profiles is core app functionality, but the
-// isProfilePrivate filter above still applies for non-owners.
 async function getProfileById(req, res, next) {
   try {
     const target = await prisma.user.findUnique({ where: { id: req.params.id } });
@@ -81,9 +66,6 @@ async function getProfileById(req, res, next) {
   }
 }
 
-// GET /api/profiles?skill=xyz - discovery/search. Never exposes email or
-// credit balance for other users' cards, regardless of privacy flag,
-// keeping the search surface minimal (data minimisation principle).
 async function searchProfiles(req, res, next) {
   try {
     const { skill } = req.query;
@@ -107,7 +89,6 @@ async function searchProfiles(req, res, next) {
   }
 }
 
-// GDPR-aligned data export: the user's own data only, structured JSON.
 async function exportMyData(req, res, next) {
   try {
     const user = await prisma.user.findUnique({

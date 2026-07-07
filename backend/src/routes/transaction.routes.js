@@ -23,9 +23,6 @@ router.post(
 router.get('/mine', ctrl.myBookings);
 router.get('/ledger/mine', ctrl.myLedger);
 
-// Ownership check: only the provider or requester on the booking (or an
-// admin) may act on it - loaded fresh from the DB by ID, never trusting
-// any ownership claim from the client.
 const bookingOwnership = requireOwnershipOrRole(ctrl.loadBooking, ['providerId', 'requesterId'], ['ADMIN']);
 
 router.patch('/:id/accept', [param('id').isUUID()], validate, bookingOwnership, ctrl.acceptBooking);

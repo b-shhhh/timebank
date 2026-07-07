@@ -7,7 +7,6 @@ async function loadDisputeByBookingId(req) {
   return { ...booking, providerId: booking.providerId, requesterId: booking.requesterId };
 }
 
-// POST /api/bookings/:bookingId/dispute - either party can raise one.
 async function raiseDispute(req, res, next) {
   try {
     const booking = req.resource;
@@ -32,7 +31,6 @@ async function raiseDispute(req, res, next) {
   }
 }
 
-// GET /api/disputes - MEDIATOR/ADMIN only (enforced by requireRole in routes).
 async function listOpenDisputes(req, res, next) {
   try {
     const disputes = await prisma.dispute.findMany({
@@ -46,10 +44,6 @@ async function listOpenDisputes(req, res, next) {
   }
 }
 
-// PATCH /api/disputes/:id/resolve - MEDIATOR/ADMIN only. Mediator decides
-// whether credits move (favouring provider) or reverse/stay (favouring
-// requester); this happens atomically alongside marking the dispute
-// resolved, same rollback-safety pattern as completeBooking.
 async function resolveDispute(req, res, next) {
   try {
     const { outcome, resolutionNotes } = req.body; // outcome: 'PROVIDER' | 'REQUESTER' | 'SPLIT'
@@ -61,15 +55,12 @@ async function resolveDispute(req, res, next) {
 
     await prisma.$transaction(async (tx) => {
       if (outcome === 'PROVIDER' && booking.status !== 'COMPLETED') {
-        // Provider wins: transfer credits as if completed normally.
         await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { decrement: booking.hours } } });
         await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { increment: booking.hours } } });
         await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
         await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'COMPLETED' } });
       } else if (outcome === 'REQUESTER') {
-        // Requester wins: no credits move; if they'd already been debited
-        // (booking was COMPLETED before the dispute), reverse it.
         if (booking.status === 'COMPLETED') {
           await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { increment: booking.hours } } });
           await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { decrement: booking.hours } } });
@@ -78,8 +69,6 @@ async function resolveDispute(req, res, next) {
         }
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
       } else {
-        // SPLIT or unrecognised outcome: no credit movement, just close
-        // the booking as cancelled and record the mediator's notes.
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
       }
 

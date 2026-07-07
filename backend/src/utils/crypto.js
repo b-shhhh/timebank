@@ -12,8 +12,6 @@ function getKey() {
   return Buffer.from(hex, 'hex');
 }
 
-// Encrypts a UTF-8 string, returning ivHex:tagHex:cipherHex so the value
-// stored in the DB is self-contained and independently decryptable.
 function encrypt(plaintext) {
   const key = getKey();
   const iv = crypto.randomBytes(12);

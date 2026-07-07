@@ -23,9 +23,6 @@ function verifyToken(base32Secret, token) {
   });
 }
 
-// Backup codes: generated once, shown to the user a single time, stored
-// only as bcrypt hashes (same treatment as passwords - they're
-// equivalent-to-password credentials).
 async function generateBackupCodes(count = 8) {
   const plain = Array.from({ length: count }, () =>
     crypto.randomBytes(5).toString('hex')

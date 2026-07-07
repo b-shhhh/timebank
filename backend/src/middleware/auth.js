@@ -1,11 +1,6 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const prisma = require('../config/db');
 
-// Verifies the access token and attaches a minimal user object to
-// req.user. Deliberately re-fetches role from the DB rather than trusting
-// the JWT's role claim after a threshold, could be extended to always
-// re-check on sensitive actions - see requireRole below for the trade-off
-// discussion in the report.
 async function requireAuth(req, res, next) {
   const header = req.get('authorization') || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -26,8 +21,6 @@ async function requireAuth(req, res, next) {
   }
 }
 
-// Least-privilege gate: pass the roles allowed to call this route.
-// Fails closed (deny) on any unlisted role rather than defaulting to allow.
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Authentication required.' });
@@ -38,11 +31,6 @@ function requireRole(...allowedRoles) {
   };
 }
 
-// Ownership check for object-level authorization (defends against IDOR):
-// confirms the authenticated user actually owns / is party to the record
-// identified by req.params[idParam], OR holds one of the bypass roles
-// (e.g. ADMIN, MEDIATOR for disputes). `loader` fetches the record and
-// must return an object with the fields to check against req.user.id.
 function requireOwnershipOrRole(loader, ownerFields, bypassRoles = ['ADMIN']) {
   return async (req, res, next) => {
     try {

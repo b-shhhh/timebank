@@ -1,5 +1,3 @@
-// Seeds a small demo dataset: one admin, one mediator, two members.
-// Passwords below are for LOCAL DEMO ONLY - never reuse in production.
 require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
@@ -30,7 +28,6 @@ async function main() {
       },
     });
   }
-  // eslint-disable-next-line no-console
   console.log('Seed complete. Demo accounts (email / password):');
   users.forEach((u) => console.log(`  ${u.email} / ${u.password}`));
 }

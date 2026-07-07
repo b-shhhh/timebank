@@ -1,8 +1,5 @@
 const { appLogger } = require('../utils/logger');
 
-// Centralised error handler: never leaks stack traces or internal error
-// messages to the client in production (prevents information disclosure
-// that could aid an attacker), while still logging full detail server-side.
 function errorHandler(err, req, res, next) {
   appLogger.error('Unhandled error', {
     message: err.message,

@@ -9,8 +9,6 @@ describe('password policy', () => {
 
   test('rejects common passwords', () => {
     const result = validatePasswordPolicy('Password123!');
-    // contains "password" pattern-wise but exact denylist check is
-    // case-insensitive on the raw common list entries
     const result2 = validatePasswordPolicy('password123');
     expect(result2.valid).toBe(false);
   });

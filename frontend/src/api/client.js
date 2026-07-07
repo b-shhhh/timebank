@@ -1,8 +1,3 @@
-// Thin fetch wrapper. Access tokens are held only in memory (module-level
-// variable, never localStorage/sessionStorage) so an XSS payload that can
-// run JS can't trivially read a persisted token out of storage - the
-// refresh token (which CAN survive a reload) lives in an httpOnly cookie
-// set by the server and is never readable from JS at all.
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
 
 let accessToken = null;
