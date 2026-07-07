@@ -25,14 +25,14 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:'], // data: needed for the MFA QR code
+      imgSrc: ["'self'", 'data:'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
     },
   },
   crossOriginResourcePolicy: { policy: 'same-site' },
 }));
-app.use(hpp()); // strips duplicate query-string params (HTTP parameter pollution)
+app.use(hpp());
 
 app.use(cors({
   origin: process.env.CORS_ORIGIN,
@@ -40,7 +40,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'DELETE'],
 }));
 
-app.use(express.json({ limit: '100kb' })); // bound request body size
+app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
 
 app.use(globalApiLimiter);
