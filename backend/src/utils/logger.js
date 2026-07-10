@@ -32,6 +32,37 @@ const appLogger = winston.createLogger({
   ],
 });
 
+// Suspicious activity detection
+const SUSPICIOUS_ACTIONS = [
+  'LOGIN_FAILED',
+  'LOGIN_BLOCKED_LOCKED',
+  'MFA_VERIFY_FAILED',
+  'LOGIN_PASSWORD_EXPIRED',
+];
+
+async function checkSuspiciousActivity(userId, action, req) {
+  if (!req || !SUSPICIOUS_ACTIONS.includes(action)) return;
+  
+  const recentFailures = await prisma.activityLog.count({
+    where: {
+      userId,
+      action: { in: SUSPICIOUS_ACTIONS },
+      createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) }, // Last hour
+    },
+  });
+  
+  if (recentFailures >= 5) {
+    appLogger.warn('Suspicious activity detected: multiple failed attempts', {
+      userId,
+      action,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      recentFailures,
+    });
+    // In production, this could trigger an email alert or admin notification
+  }
+}
+
 async function recordActivity({ userId = null, action, targetType = null, targetId = null, req = null, metadata = {} }) {
   try {
     await prisma.activityLog.create({
@@ -45,9 +76,14 @@ async function recordActivity({ userId = null, action, targetType = null, target
         metadata: JSON.stringify(redact(metadata)),
       },
     });
+    
+    // Check for suspicious activity
+    if (userId) {
+      await checkSuspiciousActivity(userId, action, req);
+    }
   } catch (err) {
     appLogger.error('Failed to write activity log', { error: err.message, action });
   }
 }
 
-module.exports = { appLogger, recordActivity, redact };
+module.exports = { appLogger, recordActivity, redact, checkSuspiciousActivity };

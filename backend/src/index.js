@@ -7,6 +7,7 @@ const hpp = require('hpp');
 
 const { authRateLimiter, globalApiLimiter } = require('./middleware/rateLimiter');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+const { csrfProtection, setCsrfCookie } = require('./middleware/csrf');
 
 const authRoutes = require('./routes/auth.routes');
 const mfaRoutes = require('./routes/mfa.routes');
@@ -54,6 +55,10 @@ app.use(cors({
 
 app.use(express.json({ limit: '100kb' }));
 app.use(cookieParser());
+
+// CSRF protection for state-changing requests
+app.use(setCsrfCookie);
+app.use(csrfProtection);
 
 app.use(globalApiLimiter);
 

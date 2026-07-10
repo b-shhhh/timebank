@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+    environment:
+      - DATABASE_URL=file:/app/data/dev.db
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - MFA_ENCRYPTION_KEY=${MFA_ENCRYPTION_KEY}
+      - CORS_ORIGIN=http://localhost:5173,http://frontend:80
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      - backend-data:/app/data
+      - ./logs:/app/logs
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE=http://localhost:4000/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:

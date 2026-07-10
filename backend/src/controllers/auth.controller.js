@@ -125,6 +125,13 @@ async function login(req, res, next) {
       return res.status(200).json({ mfaRequired: true, pendingToken });
     }
 
+    // Check password expiration (90 days)
+    const { isPasswordExpired } = require('../utils/password');
+    if (isPasswordExpired(user.passwordChangedAt)) {
+      await recordActivity({ userId: user.id, action: 'LOGIN_PASSWORD_EXPIRED', req });
+      return res.status(403).json({ error: 'Password expired. Please change your password.', passwordExpired: true });
+    }
+
     const accessToken = await issueSession(user, req, res);
     await recordActivity({ userId: user.id, action: 'LOGIN_SUCCESS', req });
     res.status(200).json({

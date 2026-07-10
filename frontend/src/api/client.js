@@ -15,9 +15,21 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
+// Get CSRF token from cookie
+function getCsrfToken() {
+  const match = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 async function request(path, { method = 'GET', body, retry = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  
+  // Add CSRF token for state-changing requests
+  if (['POST', 'PATCH', 'DELETE'].includes(method)) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  }
 
   const res = await fetch(`${API_BASE}${path}`, {
     method,

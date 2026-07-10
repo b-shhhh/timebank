@@ -14,6 +14,7 @@ export default function Login() {
   const [mfaCode, setMfaCode] = useState('');
   const [isBackupCode, setIsBackupCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [passwordExpired, setPasswordExpired] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,6 +29,10 @@ export default function Login() {
       }
     } catch (err) {
       if (err.data?.requireCaptcha) setNeedsCaptcha(true);
+      if (err.data?.passwordExpired) {
+        setPasswordExpired(true);
+        return;
+      }
       setError(err.message);
     } finally {
       setSubmitting(false);
@@ -47,6 +52,24 @@ export default function Login() {
       setSubmitting(false);
     }
   };
+
+  if (passwordExpired) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ink-900 px-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <h1 className="font-display text-4xl text-paper mb-2">Time<span className="text-brass">Bank</span></h1>
+            <p className="text-paper/50 text-sm">Trade an hour of skill for an hour of skill.</p>
+          </div>
+          <div className="card p-8 text-center">
+            <h2 className="label-eyebrow mb-3">Password Expired</h2>
+            <p className="text-sm text-ink-700 mb-4">Your password has expired (90-day policy). Please change it to continue.</p>
+            <Link to="/profile" className="btn-primary w-full">Go to Profile to Change Password</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-ink-900 px-6">
