@@ -45,7 +45,8 @@ app.use(cors({
 
     const isAllowed = allowedOrigins.includes(origin) ||
       /^https?:\/\/localhost(?::\d+)?$/.test(origin) ||
-      /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin);
+      /^https?:\/\/127\.0\.0\.1(?::\d+)?$/.test(origin) ||
+      /^https?:\/\/192\.168\.150\.1(?::\d+)?$/.test(origin);
 
     callback(null, isAllowed);
   },
@@ -75,7 +76,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`TimeBank API listening on port ${PORT}`);
 });
 
