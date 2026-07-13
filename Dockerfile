@@ -8,6 +8,7 @@ RUN npx prisma generate
 
 FROM node:20-alpine AS backend
 WORKDIR /app
+RUN apk add --no-cache curl
 COPY --from=backend-builder /app/node_modules ./node_modules
 COPY --from=backend-builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY backend/ .

@@ -33,6 +33,25 @@ cp .env.example .env     # defaults to http://localhost:4000/api
 npm run dev               # http://localhost:5173
 ```
 
+### Docker (quick demo)
+```bash
+# Copy the example env and generate secrets
+cp .env.example .env
+# Generate secrets (or use your own):
+node -e "console.log('JWT_ACCESS_SECRET=' + require('crypto').randomBytes(64).toString('hex'))" >> .env
+node -e "console.log('JWT_REFRESH_SECRET=' + require('crypto').randomBytes(64).toString('hex'))" >> .env
+node -e "console.log('MFA_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))" >> .env
+
+# Build and start
+docker-compose up -d
+
+# Initialize the database (first time only)
+docker-compose exec backend npx prisma migrate dev --name init
+docker-compose exec backend node prisma/seed.js
+
+# Open http://localhost in your browser
+```
+
 ### Tests
 ```bash
 cd backend
