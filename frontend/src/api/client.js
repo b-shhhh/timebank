@@ -59,7 +59,17 @@ async function request(path, { method = 'GET', body, retry = true } = {}) {
 
 async function tryRefresh() {
   try {
-    const res = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+    // /auth/refresh is a state-changing POST, so it needs the CSRF header too
+    // (the backend applies CSRF protection globally) - without this, every
+    // refresh attempt was silently blocked with 403, which made a page reload
+    // look like the session had expired even when the refresh cookie was
+    // still valid, bouncing the user back to /login.
+    const csrfToken = getCsrfToken();
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
+    });
     if (!res.ok) return false;
     const data = await res.json();
     accessToken = data.accessToken;
