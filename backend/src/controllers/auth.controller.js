@@ -3,7 +3,7 @@ const {
   validatePasswordPolicy, hashPassword, verifyPassword,
   recordPasswordHistory,
 } = require('../utils/password');
-const { signAccessToken, generateRefreshToken, hashToken } = require('../utils/jwt');
+const { signAccessToken, generateRefreshToken, hashToken, signMfaPendingToken, verifyMfaPendingToken } = require('../utils/jwt');
 const totp = require('../utils/totp');
 const { encrypt, decrypt } = require('../utils/crypto');
 const { recordActivity } = require('../utils/logger');
@@ -120,7 +120,7 @@ async function login(req, res, next) {
     });
 
     if (user.mfaEnabled) {
-      const pendingToken = signAccessToken({ id: user.id, role: 'PENDING_MFA', mfaEnabled: true });
+      const pendingToken = signMfaPendingToken(user.id);
       await recordActivity({ userId: user.id, action: 'LOGIN_PASSWORD_OK_MFA_PENDING', req });
       return res.status(200).json({ mfaRequired: true, pendingToken });
     }
@@ -146,15 +146,11 @@ async function login(req, res, next) {
 async function verifyMfaLogin(req, res, next) {
   try {
     const { pendingToken, code, isBackupCode } = req.body;
-    const { verifyAccessToken } = require('../utils/jwt');
     let payload;
     try {
-      payload = verifyAccessToken(pendingToken);
+      payload = verifyMfaPendingToken(pendingToken);
     } catch {
       return res.status(401).json({ error: 'MFA session expired, please log in again.' });
-    }
-    if (payload.role !== 'PENDING_MFA') {
-      return res.status(400).json({ error: 'Invalid MFA session.' });
     }
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || !user.mfaEnabled) return res.status(400).json({ error: 'MFA is not enabled for this account.' });
