@@ -54,7 +54,7 @@ async function resolveDispute(req, res, next) {
     const { booking } = dispute;
 
     // booking.status is unreliable here: raiseDispute already overwrote it to
-    // 'DISPUTED', so a status === 'COMPLETED' check below can never be true.
+    // 'DISPUTED', so a status === 'COMPLETED' check would never be true.
     // Checking the ledger instead reflects whether payment actually happened,
     // regardless of the booking's current (mutated) status.
     const alreadyPaid = await prisma.ledgerEntry.findFirst({
@@ -69,7 +69,7 @@ async function resolveDispute(req, res, next) {
         await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'COMPLETED' } });
       } else if (outcome === 'REQUESTER') {
-        if (booking.status === 'COMPLETED') {
+        if (alreadyPaid) {
           await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { increment: booking.hours } } });
           await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { decrement: booking.hours } } });
           await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
