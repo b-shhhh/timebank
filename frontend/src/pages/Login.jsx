@@ -25,7 +25,7 @@ export default function Login() {
       if (result.mfaRequired) {
         setPendingToken(result.pendingToken);
       } else {
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (err) {
       if (err.data?.requireCaptcha) setNeedsCaptcha(true);
@@ -45,7 +45,7 @@ export default function Login() {
     setSubmitting(true);
     try {
       await verifyMfa(pendingToken, mfaCode, isBackupCode);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
