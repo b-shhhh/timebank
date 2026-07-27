@@ -63,6 +63,10 @@ async function resolveDispute(req, res, next) {
 
     await prisma.$transaction(async (tx) => {
       if (outcome === 'PROVIDER' && !alreadyPaid) {
+        const requester = await tx.user.findUnique({ where: { id: booking.requesterId } });
+        if (requester.timeCredits < booking.hours) {
+          throw Object.assign(new Error('Requester has insufficient credits to complete this transfer.'), { status: 409 });
+        }
         await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { decrement: booking.hours } } });
         await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { increment: booking.hours } } });
         await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
@@ -70,6 +74,10 @@ async function resolveDispute(req, res, next) {
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'COMPLETED' } });
       } else if (outcome === 'REQUESTER') {
         if (alreadyPaid) {
+          const provider = await tx.user.findUnique({ where: { id: booking.providerId } });
+          if (provider.timeCredits < booking.hours) {
+            throw Object.assign(new Error('Provider has insufficient credits to reverse this transfer.'), { status: 409 });
+          }
           await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { increment: booking.hours } } });
           await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { decrement: booking.hours } } });
           await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
@@ -89,6 +97,7 @@ async function resolveDispute(req, res, next) {
     await recordActivity({ userId: req.user.id, action: 'DISPUTE_RESOLVED', req, targetType: 'Dispute', targetId: dispute.id, metadata: { outcome } });
     res.status(200).json({ message: 'Dispute resolved.' });
   } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 }
