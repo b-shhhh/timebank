@@ -1,3 +1,49 @@
+const prisma = require('../config/db');
+const { recordActivity } = require('../utils/logger');
+
+async function loadDisputeByBookingId(req) {
+  const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId } });
+  if (!booking) return null;
+  return { ...booking, providerId: booking.providerId, requesterId: booking.requesterId };
+}
+
+async function raiseDispute(req, res, next) {
+  try {
+    const booking = req.resource;
+    if (!['ACCEPTED', 'COMPLETED'].includes(booking.status)) {
+      return res.status(409).json({ error: 'Disputes can only be raised on accepted or completed bookings.' });
+    }
+    const existing = await prisma.dispute.findUnique({ where: { bookingId: booking.id } });
+    if (existing) return res.status(409).json({ error: 'A dispute already exists for this booking.' });
+
+    const dispute = await prisma.$transaction(async (tx) => {
+      const d = await tx.dispute.create({
+        data: { bookingId: booking.id, raisedById: req.user.id, reason: String(req.body.reason || '').slice(0, 1000) },
+      });
+      await tx.booking.update({ where: { id: booking.id }, data: { status: 'DISPUTED' } });
+      return d;
+    });
+
+    await recordActivity({ userId: req.user.id, action: 'DISPUTE_RAISED', req, targetType: 'Dispute', targetId: dispute.id });
+    res.status(201).json(dispute);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function listOpenDisputes(req, res, next) {
+  try {
+    const disputes = await prisma.dispute.findMany({
+      where: { resolvedAt: null },
+      include: { booking: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    res.status(200).json(disputes);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function resolveDispute(req, res, next) {
   try {
     const { outcome, resolutionNotes } = req.body;
@@ -8,11 +54,43 @@ async function resolveDispute(req, res, next) {
     const { booking } = dispute;
 
     // booking.status is unreliable here: raiseDispute already overwrote it to
-    // 'DISPUTED', so a status === 'COMPLETED' check can never be true. Check
-    // the ledger directly instead - that record is never mutated after the fact.
+    // 'DISPUTED', so a status === 'COMPLETED' check below can never be true.
+    // Next commit switches the checks over to this ledger-based lookup instead,
+    // which reflects whether payment actually happened regardless of status.
     const alreadyPaid = await prisma.ledgerEntry.findFirst({
       where: { bookingId: booking.id, reason: 'BOOKING_COMPLETED' },
     });
 
     await prisma.$transaction(async (tx) => {
       if (outcome === 'PROVIDER' && booking.status !== 'COMPLETED') {
+        await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { decrement: booking.hours } } });
+        await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { increment: booking.hours } } });
+        await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
+        await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
+        await tx.booking.update({ where: { id: booking.id }, data: { status: 'COMPLETED' } });
+      } else if (outcome === 'REQUESTER') {
+        if (booking.status === 'COMPLETED') {
+          await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { increment: booking.hours } } });
+          await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { decrement: booking.hours } } });
+          await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
+          await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
+        }
+        await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+      } else {
+        await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
+      }
+
+      await tx.dispute.update({
+        where: { id: dispute.id },
+        data: { mediatorId: req.user.id, resolution: `${outcome}: ${resolutionNotes || ''}`.slice(0, 1000), resolvedAt: new Date() },
+      });
+    });
+
+    await recordActivity({ userId: req.user.id, action: 'DISPUTE_RESOLVED', req, targetType: 'Dispute', targetId: dispute.id, metadata: { outcome } });
+    res.status(200).json({ message: 'Dispute resolved.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { loadDisputeByBookingId, raiseDispute, listOpenDisputes, resolveDispute };
