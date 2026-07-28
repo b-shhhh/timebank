@@ -15,8 +15,7 @@ export default function Layout({ children }) {
     <div className="min-h-screen bg-ink-900 text-paper">
       <header className="border-b border-ink-700/30 bg-ink-900/50 backdrop-blur-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="font-display text-2xl tracking-tight hover:text-brass transition-colors">
-            Time<span className="text-brass">Bank</span>
+          <Link to="/dashboard" className="font-display text-2xl tracking-tight hover:text-brass transition-colors">
           </Link>
           {user && (
             <nav className="flex items-center gap-5 text-sm">
