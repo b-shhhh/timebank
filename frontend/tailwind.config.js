@@ -1,31 +1,30 @@
-
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
         ink: {
-          950: '#14181F',
-          900: '#1B1F27',
-          800: '#242A35',
-          700: '#333B48',
+          950: '#2B3040',
+          900: '#333A4D',
+          800: '#454E64',
+          700: '#5B6478',
         },
         paper: {
           DEFAULT: '#F6F3EC',
           dim: '#EBE6D9',
         },
         brass: {
-          DEFAULT: '#B8862B',
-          light: '#D4A94F',
-          dark: '#8C6620',
+          DEFAULT: '#C99A3F',
+          light: '#E0BE6E',
+          dark: '#A67A2E',
         },
         sage: {
-          DEFAULT: '#4F7863',
-          light: '#6E9782',
+          DEFAULT: '#5C8871',
+          light: '#7DA893',
         },
         rust: {
-          DEFAULT: '#9C4A3C',
-          light: '#BC6A5C',
+          DEFAULT: '#AC5C4C',
+          light: '#C87E6E',
         },
       },
       fontFamily: {
