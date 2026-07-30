@@ -17,7 +17,7 @@ function refreshCookieOptions() {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     path: '/',
     maxAge: REFRESH_TTL_DAYS * 24 * 60 * 60 * 1000,
   };
@@ -197,19 +197,35 @@ async function refresh(req, res, next) {
       return res.status(401).json({ error: 'Session expired, please log in again.' });
     }
 
-    // Device/session binding: reject refresh attempts from a materially
-    // different user agent than the one the session was issued to, which
-    // would indicate the refresh token has been stolen and replayed
-    // elsewhere. Revoke the session outright rather than silently ignoring
-    // the mismatch, since a mismatch here is a strong compromise signal.
+    // Device/session binding (zero-trust): reject refresh attempts from a
+    // materially different user agent or IP address than the one the session
+    // was issued to. This would indicate the refresh token has been stolen
+    // and replayed elsewhere. Revoke the session outright rather than
+    // silently ignoring the mismatch, since a mismatch here is a strong
+    // compromise signal.
     const currentUA = req.get('user-agent') || '';
+    const currentIP = req.ip;
+    let sessionCompromised = false;
+
     if (session.userAgent && session.userAgent !== currentUA) {
-      await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+      sessionCompromised = true;
       await recordActivity({
         userId: session.userId, action: 'SESSION_DEVICE_MISMATCH', req,
         metadata: { expectedUserAgent: session.userAgent, actualUserAgent: currentUA },
       });
-      return res.status(401).json({ error: 'Session invalid for this device, please log in again.' });
+    }
+
+    if (session.ipAddress && session.ipAddress !== currentIP) {
+      sessionCompromised = true;
+      await recordActivity({
+        userId: session.userId, action: 'SESSION_IP_MISMATCH', req,
+        metadata: { expectedIP: session.ipAddress, actualIP: currentIP },
+      });
+    }
+
+    if (sessionCompromised) {
+      await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+      return res.status(401).json({ error: 'Session invalid for this device or network, please log in again.' });
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.userId } });

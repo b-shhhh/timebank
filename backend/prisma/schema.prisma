@@ -41,6 +41,7 @@ model User {
   disputesRaised      Dispute[] @relation("DisputeRaisedBy")
   disputesMediated    Dispute[] @relation("DisputeMediatedBy")
 
+  passkeyCredentials  PasskeyCredential[]
   paymentTransactions PaymentTransaction[]
   subscription        UserSubscription?
 }
@@ -176,4 +177,19 @@ model ServiceFee {
   creditsEquivalent Int
   processed         Boolean @default(false)
   createdAt         DateTime @default(now())
+}
+
+/// WebAuthn / FIDO2 passkey credentials (Requirement 2.2, 3.1)
+model PasskeyCredential {
+  id             String   @id
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey      String
+  counter        BigInt   @default(0)
+  transports     String   @default("[]")
+  deviceName     String?
+  createdAt      DateTime @default(now())
+  lastUsedAt     DateTime @default(now())
+
+  @@unique([userId, id])
 }

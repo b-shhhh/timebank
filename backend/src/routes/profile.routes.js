@@ -9,6 +9,7 @@ router.use(requireAuth);
 
 router.get('/me', ctrl.getMyProfile);
 router.get('/me/export', ctrl.exportMyData);
+router.post('/me/import', [body('profileData').isObject().notEmpty()], validate, ctrl.importMyData);
 
 router.patch(
   '/me',

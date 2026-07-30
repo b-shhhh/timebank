@@ -103,4 +103,41 @@ async function exportMyData(req, res, next) {
   }
 }
 
-module.exports = { getMyProfile, updateMyProfile, getProfileById, searchProfiles, exportMyData };
+async function importMyData(req, res, next) {
+  try {
+    const { profileData } = req.body;
+    if (!profileData || typeof profileData !== 'object') {
+      return res.status(400).json({ error: 'Invalid import data format. Expected JSON object with fields: bio, skillsOffered, skillsNeeded, isProfilePrivate.' });
+    }
+
+    // Only allow updating non-sensitive profile fields
+    const allowedFields = ['bio', 'skillsOffered', 'skillsNeeded', 'isProfilePrivate', 'displayName'];
+    const data = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(profileData, field)) {
+        let value = profileData[field];
+        if (field === 'displayName' || field === 'bio') {
+          value = String(value).trim().slice(0, field === 'displayName' ? 40 : 500);
+        }
+        if (field === 'skillsOffered' || field === 'skillsNeeded') {
+          if (!Array.isArray(value)) continue;
+          value = JSON.stringify(value.slice(0, 20).map((s) => String(s).trim().slice(0, 60)));
+        }
+        if (field === 'isProfilePrivate') value = Boolean(value);
+        data[field] = value;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'No valid profile fields provided for import.' });
+    }
+
+    await prisma.user.update({ where: { id: req.user.id }, data });
+    await recordActivity({ userId: req.user.id, action: 'DATA_IMPORTED', req, metadata: { fields: Object.keys(data) } });
+    res.status(200).json({ message: 'Profile data imported successfully.', fieldsUpdated: Object.keys(data) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getMyProfile, updateMyProfile, getProfileById, searchProfiles, exportMyData, importMyData };

@@ -5,12 +5,13 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const hpp = require('hpp');
 
-const { authRateLimiter, globalApiLimiter } = require('./middleware/rateLimiter');
+const { authRateLimiter, globalApiLimiter, ipBlockingMiddleware } = require('./middleware/rateLimiter');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { csrfProtection, setCsrfCookie } = require('./middleware/csrf');
 
 const authRoutes = require('./routes/auth.routes');
 const mfaRoutes = require('./routes/mfa.routes');
+const webauthnRoutes = require('./routes/webauthn.routes');
 const profileRoutes = require('./routes/profile.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const disputeRoutes = require('./routes/dispute.routes');
@@ -62,11 +63,15 @@ app.use(cookieParser());
 app.use(setCsrfCookie);
 app.use(csrfProtection);
 
+// IP-based blocking (Requirement 3.2) — applied before rate limiters
+app.use(ipBlockingMiddleware);
+
 app.use(globalApiLimiter);
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.use('/api/auth', authRateLimiter, authRoutes);
+app.use('/api/auth/passkey', webauthnRoutes);
 app.use('/api/mfa', mfaRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/bookings', transactionRoutes);

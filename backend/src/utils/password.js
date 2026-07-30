@@ -1,26 +1,29 @@
 const bcrypt = require('bcryptjs');
+const zxcvbn = require('zxcvbn');
 
 const SALT_ROUNDS = 12;
 const HISTORY_DEPTH = 5;
 const MAX_PASSWORD_AGE_DAYS = 90;
 
-const COMMON_PASSWORDS = new Set([
-  'password', 'password1', 'password123', 'qwerty123', 'letmein123',
-  '123456789', 'admin1234', 'welcome123', 'iloveyou1', 'sunshine1',
-]);
-
+/**
+ * Score password strength using zxcvbn (real-time assessment).
+ * Returns a 0–4 score, along with feedback and optional crack times.
+ */
 function scorePasswordStrength(password) {
-  let score = 0;
-  if (password.length >= 12) score += 2;
-  else if (password.length >= 8) score += 1;
-  if (/[a-z]/.test(password)) score += 1;
-  if (/[A-Z]/.test(password)) score += 1;
-  if (/[0-9]/.test(password)) score += 1;
-  if (/[^A-Za-z0-9]/.test(password)) score += 1;
-  if (/(.)\1{2,}/.test(password)) score -= 1;
-  const labels = ['very weak', 'weak', 'fair', 'good', 'strong', 'very strong'];
-  const idx = Math.max(0, Math.min(labels.length - 1, score));
-  return { score, label: labels[idx] };
+  if (!password) return { score: 0, label: 'very weak', feedback: [] };
+  const result = zxcvbn(password);
+  const labels = ['very weak', 'weak', 'fair', 'strong', 'very strong'];
+  const label = labels[result.score] || 'very weak';
+  const feedback = [
+    ...(result.feedback?.suggestions || []),
+    ...(result.feedback?.warning ? [result.feedback.warning] : []),
+  ];
+  return {
+    score: result.score,
+    label,
+    feedback,
+    crackTimeSeconds: result.crack_times_seconds?.offline_slow_hashing_1e4_per_second || 0,
+  };
 }
 
 function validatePasswordPolicy(password, email = '') {
@@ -35,9 +38,6 @@ function validatePasswordPolicy(password, email = '') {
   if (!/[A-Z]/.test(password)) errors.push('Include at least one uppercase letter.');
   if (!/[0-9]/.test(password)) errors.push('Include at least one number.');
   if (!/[^A-Za-z0-9]/.test(password)) errors.push('Include at least one special character.');
-  if (password && COMMON_PASSWORDS.has(password.toLowerCase())) {
-    errors.push('This password is too common. Choose something more unique.');
-  }
   const localPart = (email.split('@')[0] || '').toLowerCase();
   if (localPart && password && password.toLowerCase().includes(localPart) && localPart.length >= 4) {
     errors.push('Password must not contain your email address.');

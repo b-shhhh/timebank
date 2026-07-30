@@ -1,5 +1,6 @@
 const winston = require('winston');
 const prisma = require('../config/db');
+const { sendAlert, AlertCategory } = require('./alerter');
 
 const SENSITIVE_KEYS = new Set([
   'password', 'newPassword', 'oldPassword', 'confirmPassword',
@@ -59,7 +60,12 @@ async function checkSuspiciousActivity(userId, action, req) {
       userAgent: req.get('user-agent'),
       recentFailures,
     });
-    // In production, this could trigger an email alert or admin notification
+    // Real-time alert (Requirement 2.5)
+    sendAlert(
+      AlertCategory.BRUTE_FORCE,
+      `User ${userId} has ${recentFailures} failed auth attempts in the last hour.`,
+      { userId, action, ipAddress: req.ip, recentFailures }
+    );
   }
 }
 

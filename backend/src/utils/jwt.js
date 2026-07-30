@@ -5,7 +5,10 @@ function signAccessToken(user) {
   return jwt.sign(
     { sub: user.id, role: user.role, mfa: user.mfaEnabled },
     process.env.JWT_ACCESS_SECRET,
-    { expiresIn: process.env.ACCESS_TOKEN_TTL || '15m', algorithm: 'HS256' }
+    // Zero-trust: short-lived access tokens (5 minutes) reduce the window
+    // for stolen token reuse. Combined with session device/IP binding on
+    // refresh, this ensures re-authentication is required frequently.
+    { expiresIn: process.env.ACCESS_TOKEN_TTL || '5m', algorithm: 'HS256' }
   );
 }
 
