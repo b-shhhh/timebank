@@ -196,6 +196,22 @@ async function refresh(req, res, next) {
     if (!session || session.revokedAt || session.expiresAt < new Date()) {
       return res.status(401).json({ error: 'Session expired, please log in again.' });
     }
+
+    // Device/session binding: reject refresh attempts from a materially
+    // different user agent than the one the session was issued to, which
+    // would indicate the refresh token has been stolen and replayed
+    // elsewhere. Revoke the session outright rather than silently ignoring
+    // the mismatch, since a mismatch here is a strong compromise signal.
+    const currentUA = req.get('user-agent') || '';
+    if (session.userAgent && session.userAgent !== currentUA) {
+      await prisma.session.update({ where: { id: session.id }, data: { revokedAt: new Date() } });
+      await recordActivity({
+        userId: session.userId, action: 'SESSION_DEVICE_MISMATCH', req,
+        metadata: { expectedUserAgent: session.userAgent, actualUserAgent: currentUA },
+      });
+      return res.status(401).json({ error: 'Session invalid for this device, please log in again.' });
+    }
+
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user) return res.status(401).json({ error: 'Invalid session.' });
 
