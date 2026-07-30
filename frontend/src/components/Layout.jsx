@@ -21,6 +21,7 @@ export default function Layout({ children }) {
             <nav className="flex items-center gap-5 text-sm">
               <Link to="/browse" className="hover:text-brass transition-colors">Browse skills</Link>
               <Link to="/bookings" className="hover:text-brass transition-colors">Bookings</Link>
+              <Link to="/subscription" className="hover:text-brass transition-colors">Subscription</Link>
               <Link to="/profile" className="hover:text-brass transition-colors">Profile</Link>
               {(user.role === 'MEDIATOR' || user.role === 'ADMIN') && (
                 <Link to="/disputes" className="hover:text-brass transition-colors">Disputes</Link>

@@ -15,6 +15,7 @@ const profileRoutes = require('./routes/profile.routes');
 const transactionRoutes = require('./routes/transaction.routes');
 const disputeRoutes = require('./routes/dispute.routes');
 const adminRoutes = require('./routes/admin.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
@@ -71,6 +72,7 @@ app.use('/api/profiles', profileRoutes);
 app.use('/api/bookings', transactionRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

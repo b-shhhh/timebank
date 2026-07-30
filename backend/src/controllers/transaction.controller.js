@@ -90,6 +90,24 @@ async function completeBooking(req, res, next) {
         data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'BOOKING_COMPLETED' },
       });
 
+      // Deduct service fee (5% of hours, min 1 credit)
+      const serviceFee = Math.max(1, Math.ceil(booking.hours * 0.05));
+      if (booking.providerId !== booking.requesterId) {
+        const providerAfter = await tx.user.findUnique({ where: { id: booking.providerId } });
+        if (providerAfter.timeCredits >= serviceFee) {
+          await tx.user.update({
+            where: { id: booking.providerId },
+            data: { timeCredits: { decrement: serviceFee } },
+          });
+          await tx.ledgerEntry.create({
+            data: { userId: booking.providerId, bookingId: booking.id, amount: -serviceFee, reason: 'SERVICE_FEE' },
+          });
+          await tx.serviceFee.create({
+            data: { bookingId: booking.id, amountCredits: serviceFee },
+          });
+        }
+      }
+
       return updatedBooking;
     });
 

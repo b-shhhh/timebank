@@ -8,6 +8,7 @@ import Browse from './pages/Browse';
 import Bookings from './pages/Bookings';
 import Disputes from './pages/Disputes';
 import Admin from './pages/Admin';
+import Subscription from './pages/Subscription';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/browse" element={<ProtectedRoute><Browse /></ProtectedRoute>} />
       <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+      <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
       <Route path="/disputes" element={<ProtectedRoute roles={['MEDIATOR', 'ADMIN']}><Disputes /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute roles={['ADMIN']}><Admin /></ProtectedRoute>} />
     </Routes>

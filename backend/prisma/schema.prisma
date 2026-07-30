@@ -40,6 +40,9 @@ model User {
   activityLogs        ActivityLog[]
   disputesRaised      Dispute[] @relation("DisputeRaisedBy")
   disputesMediated    Dispute[] @relation("DisputeMediatedBy")
+
+  paymentTransactions PaymentTransaction[]
+  subscription        UserSubscription?
 }
 
 model PasswordHistory {
@@ -77,6 +80,7 @@ model Booking {
 
   dispute       Dispute?
   ledgerEntries LedgerEntry[]
+  serviceFee    ServiceFee?
 }
 
 model LedgerEntry {
@@ -115,4 +119,61 @@ model ActivityLog {
   userAgent  String?
   metadata   String?
   createdAt  DateTime @default(now())
+}
+
+model PricingPlan {
+  id             String  @id @default(uuid())
+  name           String
+  type           String  @default("SUBSCRIPTION")
+  credits        Int
+  priceCents     Int
+  paypalPlanId   String?
+  intervalMonths Int?
+  isActive       Boolean @default(true)
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transactions   PaymentTransaction[]
+  subscriptions  UserSubscription[]
+}
+
+model PaymentTransaction {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  type          String
+  amountCents   Int
+  creditsAmount Int
+  paypalId      String?
+  planId        String?
+  plan          PricingPlan? @relation(fields: [planId], references: [id])
+  status        String   @default("COMPLETED")
+  metadata      String?
+  createdAt     DateTime @default(now())
+}
+
+model UserSubscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  planId               String
+  plan                 PricingPlan @relation(fields: [planId], references: [id])
+  paypalSubscriptionId String?
+  status               String   @default("ACTIVE")
+  currentPeriodStart   DateTime @default(now())
+  currentPeriodEnd     DateTime?
+  autoRenew            Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model ServiceFee {
+  id                String  @id @default(uuid())
+  bookingId         String  @unique
+  booking           Booking @relation(fields: [bookingId], references: [id])
+  amountCents       Int
+  creditsEquivalent Int
+  processed         Boolean @default(false)
+  createdAt         DateTime @default(now())
 }
