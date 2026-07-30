@@ -49,13 +49,21 @@ async function register(req, res, next) {
     }
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+
+    // User-enumeration timing side-channel fix: always perform the expensive
+    // bcrypt hash (SALT_ROUNDS=12, deliberately slow) regardless of whether
+    // the email is already taken, so response timing can't be used to infer
+    // which branch executed. Mirrors the dummy-hash pattern already used
+    // against the same class of leak in login(). The result is discarded on
+    // the existing-email path.
+    const passwordHash = await hashPassword(password);
+
     if (existing) {
       return res.status(200).json({
         message: 'If this email is not already registered, a verification link has been sent.',
       });
     }
 
-    const passwordHash = await hashPassword(password);
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),

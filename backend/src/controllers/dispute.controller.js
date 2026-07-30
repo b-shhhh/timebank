@@ -1,5 +1,6 @@
 const prisma = require('../config/db');
 const { recordActivity } = require('../utils/logger');
+const xss = require('xss');
 
 async function loadDisputeByBookingId(req) {
   const booking = await prisma.booking.findUnique({ where: { id: req.params.bookingId } });
@@ -13,12 +14,22 @@ async function raiseDispute(req, res, next) {
     if (!['ACCEPTED', 'COMPLETED'].includes(booking.status)) {
       return res.status(409).json({ error: 'Disputes can only be raised on accepted or completed bookings.' });
     }
+
     const existing = await prisma.dispute.findUnique({ where: { bookingId: booking.id } });
     if (existing) return res.status(409).json({ error: 'A dispute already exists for this booking.' });
 
+    // Sanitize the reason the same way profile.controller.js sanitizes bio/
+    // displayName. React's default JSX escaping already prevents this from
+    // executing in the current frontend, but relying solely on the renderer
+    // as the only defense is fragile — any future component that renders
+    // this field via dangerouslySetInnerHTML (or a non-React client, e.g.
+    // a future admin CLI/export) would be immediately exploitable. Sanitize
+    // at the point of storage instead of trusting every future consumer.
+    const reason = xss(String(req.body.reason || '').trim());
+
     const dispute = await prisma.$transaction(async (tx) => {
       const d = await tx.dispute.create({
-        data: { bookingId: booking.id, raisedById: req.user.id, reason: String(req.body.reason || '').slice(0, 1000) },
+        data: { bookingId: booking.id, raisedById: req.user.id, reason },
       });
       await tx.booking.update({ where: { id: booking.id }, data: { status: 'DISPUTED' } });
       return d;
@@ -69,8 +80,8 @@ async function resolveDispute(req, res, next) {
         }
         await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { decrement: booking.hours } } });
         await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { increment: booking.hours } } });
-        await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
-        await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
+        await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_PROVIDER' } });
+        await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_PROVIDER' } });
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'COMPLETED' } });
       } else if (outcome === 'REQUESTER') {
         if (alreadyPaid) {
@@ -80,8 +91,8 @@ async function resolveDispute(req, res, next) {
           }
           await tx.user.update({ where: { id: booking.requesterId }, data: { timeCredits: { increment: booking.hours } } });
           await tx.user.update({ where: { id: booking.providerId }, data: { timeCredits: { decrement: booking.hours } } });
-          await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_CREDIT' } });
-          await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_DEBIT' } });
+          await tx.ledgerEntry.create({ data: { userId: booking.requesterId, bookingId: booking.id, amount: booking.hours, reason: 'DISPUTE_RESOLVED_REQUESTER' } });
+          await tx.ledgerEntry.create({ data: { userId: booking.providerId, bookingId: booking.id, amount: -booking.hours, reason: 'DISPUTE_RESOLVED_REQUESTER' } });
         }
         await tx.booking.update({ where: { id: booking.id }, data: { status: 'CANCELLED' } });
       } else {
@@ -90,7 +101,7 @@ async function resolveDispute(req, res, next) {
 
       await tx.dispute.update({
         where: { id: dispute.id },
-        data: { mediatorId: req.user.id, resolution: `${outcome}: ${resolutionNotes || ''}`.slice(0, 1000), resolvedAt: new Date() },
+        data: { mediatorId: req.user.id, resolution: `${outcome}: ${resolutionNotes || ''}`.trim(), resolvedAt: new Date() },
       });
     });
 
