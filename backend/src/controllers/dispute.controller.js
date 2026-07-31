@@ -27,13 +27,30 @@ async function raiseDispute(req, res, next) {
     // at the point of storage instead of trusting every future consumer.
     const reason = xss(String(req.body.reason || '').trim());
 
-    const dispute = await prisma.$transaction(async (tx) => {
-      const d = await tx.dispute.create({
-        data: { bookingId: booking.id, raisedById: req.user.id, reason },
+    let dispute;
+    try {
+      dispute = await prisma.$transaction(async (tx) => {
+        const d = await tx.dispute.create({
+          data: { bookingId: booking.id, raisedById: req.user.id, reason },
+        });
+        await tx.booking.update({ where: { id: booking.id }, data: { status: 'DISPUTED' } });
+        return d;
       });
-      await tx.booking.update({ where: { id: booking.id }, data: { status: 'DISPUTED' } });
-      return d;
-    });
+    } catch (txErr) {
+      // Race condition fix: the existence check above and this create() are
+      // not atomic, so two near-simultaneous requests can both pass the
+      // check and both attempt to create a dispute for the same booking.
+      // The DB's unique constraint on bookingId correctly stops the second
+      // one, but Prisma surfaces that as a raw exception (code P2002) that
+      // was previously falling through to the generic error handler and
+      // leaking the full stack trace, file path, and query internals in
+      // the response body (confirmed via Burp Intruder fuzzing). Catch it
+      // here and return the same clean 409 the pre-check was meant to give.
+      if (txErr.code === 'P2002') {
+        return res.status(409).json({ error: 'A dispute already exists for this booking.' });
+      }
+      throw txErr;
+    }
 
     await recordActivity({ userId: req.user.id, action: 'DISPUTE_RAISED', req, targetType: 'Dispute', targetId: dispute.id });
     res.status(201).json(dispute);
